@@ -1,0 +1,61 @@
+name: "MAIP Receipt Generator"
+description: "Generate and verify MAIP receipts for GitHub events — commits, PRs, releases, CI runs"
+author: "Truthlocks Inc"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  maip-api-url:
+    description: "MAIP API URL"
+    required: false
+    default: "https://api.truthlocks.com/v1/machine-identity"
+  maip-api-key:
+    description: "MAIP API Key"
+    required: true
+  maip-tenant-id:
+    description: "Tenant ID"
+    required: true
+  maip-agent-id:
+    description: "Agent ID for this GitHub repository"
+    required: false
+    default: ""
+  mode:
+    description: "Operation mode: receipt, verify, check, comment, badge"
+    required: false
+    default: "receipt"
+  event-type:
+    description: "Event type: commit, pr, release, ci, artifact"
+    required: false
+    default: "auto"
+  receipt-id:
+    description: "Receipt ID to verify (for mode=verify)"
+    required: false
+  create-check:
+    description: "Create GitHub Check Run with results"
+    required: false
+    default: "true"
+  post-comment:
+    description: "Post PR comment with receipt summary"
+    required: false
+    default: "true"
+  github-token:
+    description: "GitHub token for API calls"
+    required: false
+    default: "${{ github.token }}"
+
+outputs:
+  receipt-id:
+    description: "Generated receipt ID"
+  receipt-hash:
+    description: "Receipt chain hash"
+  verification-status:
+    description: "Verification result (valid/invalid/pending)"
+  trust-score:
+    description: "Agent trust score"
+  badge-url:
+    description: "URL of generated status badge"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

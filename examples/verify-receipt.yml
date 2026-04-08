@@ -1,0 +1,25 @@
+# Verify an existing MAIP receipt as a PR check.
+name: MAIP Verify Receipt
+on:
+  workflow_dispatch:
+    inputs:
+      receipt-id:
+        description: "Receipt ID to verify"
+        required: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: truthlocks/maip-github-action@v1
+        with:
+          maip-api-key: ${{ secrets.MAIP_API_KEY }}
+          maip-tenant-id: ${{ secrets.MAIP_TENANT_ID }}
+          mode: verify
+          receipt-id: ${{ github.event.inputs.receipt-id }}
+          create-check: "true"
+          post-comment: "true"

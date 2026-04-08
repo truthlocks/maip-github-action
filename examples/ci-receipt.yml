@@ -1,0 +1,22 @@
+# Generate a MAIP receipt for the entire CI workflow run.
+name: MAIP CI Receipt
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  receipt:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      actions: read
+    steps:
+      - uses: truthlocks/maip-github-action@v1
+        with:
+          maip-api-key: ${{ secrets.MAIP_API_KEY }}
+          maip-tenant-id: ${{ secrets.MAIP_TENANT_ID }}
+          mode: receipt
+          event-type: ci
+          create-check: "true"

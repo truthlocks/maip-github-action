@@ -1,0 +1,19 @@
+# Generate a MAIP receipt for every push (commit) event.
+name: MAIP Receipt on Push
+on: [push]
+
+jobs:
+  receipt:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: truthlocks/maip-github-action@v1
+        with:
+          maip-api-key: ${{ secrets.MAIP_API_KEY }}
+          maip-tenant-id: ${{ secrets.MAIP_TENANT_ID }}
+          mode: receipt
+          event-type: commit
