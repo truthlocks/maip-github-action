@@ -1,7 +1,7 @@
 {
   "name": "@truthlocks/maip-github-action",
   "version": "1.0.0",
-  "private": true,
+  "private": false,
   "description": "Generate and verify MAIP receipts for GitHub events — commits, PRs, releases, CI runs",
   "type": "module",
   "license": "Apache-2.0",

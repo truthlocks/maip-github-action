@@ -1,0 +1,22 @@
+# Generate a MAIP receipt and checks for every pull request.
+name: MAIP PR Check
+on: [pull_request]
+
+jobs:
+  maip-check:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: truthlocks/maip-github-action@v1
+        with:
+          maip-api-key: ${{ secrets.MAIP_API_KEY }}
+          maip-tenant-id: ${{ secrets.MAIP_TENANT_ID }}
+          mode: receipt
+          event-type: pr
+          create-check: "true"
+          post-comment: "true"
