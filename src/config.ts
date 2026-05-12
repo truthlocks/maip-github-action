@@ -40,7 +40,7 @@ export class ConfigError extends Error {
 export function loadActionConfig(): ActionConfig {
   const maipApiUrl =
     core.getInput("maip-api-url", { required: false }) ||
-    "https://api.truthlocks.com/v1/machine-identity";
+    "https://api.truthlocks.com/v1";
   const maipApiKey = core.getInput("maip-api-key", { required: true });
   const tenantId = core.getInput("maip-tenant-id", { required: true });
   const agentId = core.getInput("maip-agent-id", { required: false }) || "";

@@ -202,7 +202,7 @@ export interface ReceiptResponse {
   readonly delegation_chain_hash: string;
   readonly attestation_id: string;
   readonly previous_receipt_id: string | null;
-  readonly status: "PENDING" | "COMPLETE" | "FAILED";
+  readonly status: "valid" | "pending" | "revoked" | "expired" | "superseded";
   readonly duration_ms: number | null;
   readonly error_code: string | null;
   readonly created_at: string;

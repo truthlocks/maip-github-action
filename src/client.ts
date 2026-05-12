@@ -62,18 +62,31 @@ export class MAIPClient {
     core.debug(
       `Creating receipt: action=${request.action}, type=${request.receipt_type}`,
     );
-    return this.request<ReceiptResponse>("POST", "/receipts", request);
+    return this.request<ReceiptResponse>("POST", "/agent-receipts", request);
   }
 
   /**
    * Verify an existing receipt by its ID.
+   * Since the backend has no dedicated verify endpoint, we fetch the receipt
+   * and derive verification from its status and signature fields.
    */
   async verifyReceipt(receiptId: string): Promise<VerifyReceiptResponse> {
     core.debug(`Verifying receipt: ${receiptId}`);
-    return this.request<VerifyReceiptResponse>(
-      "GET",
-      `/receipts/${encodeURIComponent(receiptId)}/verify`,
-    );
+    const receipt = await this.getReceipt(receiptId);
+    const valid = receipt.status === "valid";
+    return {
+      valid,
+      verdict: valid ? "PASS" : "FAIL",
+      details: valid
+        ? "Receipt signature and chain verified successfully"
+        : `Receipt status is ${receipt.status}`,
+      warnings:
+        receipt.status === "expired"
+          ? ["Receipt has expired"]
+          : receipt.status === "superseded"
+            ? ["Receipt has been superseded by a newer receipt"]
+            : [],
+    };
   }
 
   /**
@@ -83,7 +96,7 @@ export class MAIPClient {
     core.debug(`Fetching receipt: ${receiptId}`);
     return this.request<ReceiptResponse>(
       "GET",
-      `/receipts/${encodeURIComponent(receiptId)}`,
+      `/agent-receipts/${encodeURIComponent(receiptId)}`,
     );
   }
 
@@ -94,7 +107,7 @@ export class MAIPClient {
     core.debug(`Fetching trust score: agent=${agentId}`);
     return this.request<TrustScoreResponse>(
       "GET",
-      `/agents/${encodeURIComponent(agentId)}/trust`,
+      `/agents/${encodeURIComponent(agentId)}/trust-score`,
     );
   }
 
@@ -108,8 +121,10 @@ export class MAIPClient {
       "Content-Type": "application/json",
       Accept: "application/json",
       "X-API-Key": this.config.apiKey,
-      "X-Tenant-ID": this.config.tenantId,
     };
+    if (this.config.tenantId && !this.config.apiKey.startsWith("tl_live_")) {
+      headers["X-Tenant-ID"] = this.config.tenantId;
+    }
 
     let lastError: Error | undefined;
 
