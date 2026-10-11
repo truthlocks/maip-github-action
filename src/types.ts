@@ -42,6 +42,7 @@ export interface ActionConfig {
 // ---------------------------------------------------------------------------
 
 export interface MAIPConfig {
+  readonly bearerToken?: string;
   readonly apiUrl: string;
   readonly apiKey: string;
   readonly tenantId: string;
@@ -217,6 +218,7 @@ export interface VerifyReceiptResponse {
 }
 
 export interface TrustScoreResponse {
+  readonly factors?: Record<string, unknown> | null;
   readonly agent_id: string;
   readonly trust_level: string;
   readonly trust_score: number;

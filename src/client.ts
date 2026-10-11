@@ -62,30 +62,23 @@ export class MAIPClient {
     core.debug(
       `Creating receipt: action=${request.action}, type=${request.receipt_type}`,
     );
-    return this.request<ReceiptResponse>("POST", "/agent-receipts", request);
+    return this.request<ReceiptResponse>("POST", "/agent-receipts", { ...request, receipt_type: request.receipt_type ?? "action", metadata: request.payload });
   }
 
   /**
    * Verify an existing receipt by its ID.
-   * Since the backend has no dedicated verify endpoint, we fetch the receipt
-   * and derive verification from its status and signature fields.
+   * Uses server signature verification and lifecycle checks; status alone is insufficient.
    */
   async verifyReceipt(receiptId: string): Promise<VerifyReceiptResponse> {
-    core.debug(`Verifying receipt: ${receiptId}`);
-    const receipt = await this.getReceipt(receiptId);
-    const valid = receipt.status === "valid";
+    const result = await this.request<{ valid: boolean; verdict: string; reason?: string; signature_verified: boolean; transparency_verified: boolean }>(
+      "GET", `/agent-receipts/verify/${encodeURIComponent(receiptId)}`,
+    );
+    const valid = result.valid === true && result.verdict === "VALID" && result.signature_verified === true;
     return {
       valid,
       verdict: valid ? "PASS" : "FAIL",
-      details: valid
-        ? "Receipt signature and chain verified successfully"
-        : `Receipt status is ${receipt.status}`,
-      warnings:
-        receipt.status === "expired"
-          ? ["Receipt has expired"]
-          : receipt.status === "superseded"
-            ? ["Receipt has been superseded by a newer receipt"]
-            : [],
+      details: result.reason || result.verdict,
+      warnings: result.transparency_verified ? [] : ["Transparency-log inclusion was not verified"],
     };
   }
 
@@ -122,13 +115,16 @@ export class MAIPClient {
       Accept: "application/json",
       "X-API-Key": this.config.apiKey,
     };
-    if (this.config.tenantId && !this.config.apiKey.startsWith("tl_live_")) {
-      headers["X-Tenant-ID"] = this.config.tenantId;
-    }
 
+    if (this.config.bearerToken) {
+      if (this.config.apiKey) throw new Error("Use one API key or bearer token, not both");
+      delete headers["X-API-Key"];
+      headers["Authorization"] = `Bearer ${this.config.bearerToken}`;
+    }
+    const retries = method === "GET" || method === "HEAD" ? this.maxRetries : 0;
     let lastError: Error | undefined;
 
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
       if (attempt > 0) {
         const delay = this.calculateDelay(attempt);
         core.debug(
@@ -138,17 +134,15 @@ export class MAIPClient {
       }
 
       try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
         const response = await fetch(url, {
           method,
           headers,
           body: body !== undefined ? JSON.stringify(body) : undefined,
-          signal: controller.signal,
+          signal: AbortSignal.timeout(this.timeoutMs),
+          redirect: "error",
         });
 
-        clearTimeout(timeout);
 
         if (response.ok) {
           const text = await response.text();
@@ -160,13 +154,13 @@ export class MAIPClient {
 
         if (
           RETRYABLE_STATUS_CODES.has(response.status) &&
-          attempt < this.maxRetries
+          attempt < retries
         ) {
           const retryAfter = response.headers.get("Retry-After");
           if (retryAfter) {
             const retryDelaySeconds = parseInt(retryAfter, 10);
             if (!isNaN(retryDelaySeconds)) {
-              await this.sleep(retryDelaySeconds * 1000);
+              await this.sleep(Math.min(Math.max(retryDelaySeconds, 0) * 1000, MAX_DELAY_MS));
             }
           }
           lastError = new MAIPApiError(response.status, {
@@ -199,12 +193,12 @@ export class MAIPClient {
             `Request to ${method} ${path} timed out after ${this.timeoutMs}ms`,
             error,
           );
-          if (attempt < this.maxRetries) {
+          if (attempt < retries) {
             continue;
           }
         }
 
-        if (attempt < this.maxRetries) {
+        if (attempt < retries) {
           lastError = new MAIPNetworkError(
             `Network error on ${method} ${path}`,
             error,

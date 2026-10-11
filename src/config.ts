@@ -42,7 +42,7 @@ export function loadActionConfig(): ActionConfig {
     core.getInput("maip-api-url", { required: false }) ||
     "https://api.truthlocks.com/v1";
   const maipApiKey = core.getInput("maip-api-key", { required: true });
-  const tenantId = core.getInput("maip-tenant-id", { required: true });
+  const tenantId = core.getInput("maip-tenant-id", { required: false });
   const agentId = core.getInput("maip-agent-id", { required: false }) || "";
   const mode = core.getInput("mode", { required: false }) || "receipt";
   const eventType = core.getInput("event-type", { required: false }) || "auto";
@@ -60,9 +60,6 @@ export function loadActionConfig(): ActionConfig {
     throw new ConfigError("maip-api-key is required");
   }
 
-  if (!tenantId) {
-    throw new ConfigError("maip-tenant-id is required");
-  }
 
   if (!VALID_MODES.includes(mode as OperationMode)) {
     throw new ConfigError(
@@ -103,8 +100,8 @@ export function resolveAgentId(config: ActionConfig): string {
     return config.agentId;
   }
 
-  const repo = `${github.context.repo.owner}/${github.context.repo.repo}`;
-  return `github-${repo.replace(/[^a-zA-Z0-9-]/g, "-").toLowerCase()}`;
+  if (config.mode === "verify" || (config.mode === "comment" && config.receiptId)) return "";
+  throw new ConfigError("maip-agent-id must identify an existing registered workspace agent");
 }
 
 /**

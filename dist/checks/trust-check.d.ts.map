@@ -1,0 +1,1 @@
+{"version":3,"file":"trust-check.d.ts","sourceRoot":"","sources":["../../src/checks/trust-check.ts"],"names":[],"mappings":"AAAA;;;;;GAKG;AAGH,OAAO,KAAK,MAAM,MAAM,iBAAiB,CAAC;AAC1C,OAAO,KAAK,EAAE,kBAAkB,EAAE,MAAM,aAAa,CAAC;AA2BtD;;GAEG;AACH,wBAAsB,gBAAgB,CACpC,OAAO,EAAE,UAAU,CAAC,OAAO,MAAM,CAAC,UAAU,CAAC,EAC7C,UAAU,EAAE,kBAAkB,GAC7B,OAAO,CAAC,IAAI,CAAC,CAyCf"}

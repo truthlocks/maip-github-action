@@ -91,33 +91,31 @@ describe("MAIPClient", () => {
     expect(result.delegation_chain_hash).toBe("chain-hash");
 
     const fetchCall = vi.mocked(fetch).mock.calls[0];
-    expect(fetchCall[0]).toBe("https://api.test.com/v1/receipts");
+    expect(fetchCall[0]).toBe("https://api.test.com/v1/agent-receipts");
     const requestInit = fetchCall[1] as RequestInit;
     const headers = requestInit.headers as Record<string, string>;
     expect(headers["X-API-Key"]).toBe("test-api-key");
-    expect(headers["X-Tenant-ID"]).toBe("test-tenant");
+    expect(headers["X-Tenant-ID"]).toBeUndefined();
     expect(headers["Content-Type"]).toBe("application/json");
   });
 
   it("should verify a receipt by ID", async () => {
-    const expectedResponse = {
-      valid: true,
-      verdict: "Receipt chain verified",
-      details: "All hashes match",
-      warnings: [],
-    };
-
-    mockFetchResponse(expectedResponse);
+    mockFetchResponse({
+      receipt_id: "rcpt-001",
+      status: "valid", valid: true, verdict: "VALID", signature_verified: true, transparency_verified: false,
+      action: "test.action",
+      agent_id: "agent-001",
+    });
 
     const client = createClient();
     const result = await client.verifyReceipt("rcpt-001");
 
     expect(result.valid).toBe(true);
-    expect(result.verdict).toBe("Receipt chain verified");
+    expect(result.verdict).toBe("PASS");
 
     const fetchCall = vi.mocked(fetch).mock.calls[0];
     expect(fetchCall[0]).toBe(
-      "https://api.test.com/v1/receipts/rcpt-001/verify",
+      "https://api.test.com/v1/agent-receipts/verify/rcpt-001",
     );
   });
 

@@ -81,7 +81,7 @@ export function renderReceiptComment(
     "| Field | Value |",
     "|-------|-------|",
     `| Receipt ID | \`${receipt.receipt_id}\` |`,
-    `| Chain Hash | \`${receipt.delegation_chain_hash.substring(0, 20)}...\` |`,
+    `| Chain Hash | \`${(receipt.delegation_chain_hash || "unavailable").substring(0, 20)}...\` |`,
     `| Verification | ${verificationStatus} ${verificationIcon} |`,
     `| Trust Score | ${trustScoreDisplay} ${trustIcon} |`,
     `| Agent | \`${receipt.agent_id}\` |`,

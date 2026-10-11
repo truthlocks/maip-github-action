@@ -1,114 +1,81 @@
-# @truthlocks/maip-github-action
+# Truthlocks MAIP GitHub Action
 
-Generate and verify MAIP receipts for GitHub events — commits, PRs, releases, and CI runs. Every code change gets a cryptographic proof of who did what, when, and why.
+Generate receipt requests from supported GitHub event metadata and optionally render check results or comments.
 
-## Quick Start
+## Release readiness
+
+Version 1.2.0 submits signed integration metadata through the current MAIP receipt API.
+Live QA checks cover receipt creation, retrieval and signature verification; GitHub
+event builders and failure handling are exercised with fixtures. Real check/comment
+posting needs an explicitly selected test repository and appropriate GitHub permissions.
+Failed delivery or invalid verification now fails the action. Full-chain and
+transparency verification are not performed; the chain check reports neutral.
+
+## Integration example
+
+This snippet documents the declared input contract for a reviewed source checkout.
+Run it first in an explicitly triggered QA workflow.
+Use repository secrets for credentials and an explicitly triggered QA workflow.
 
 ```yaml
-name: Generate MAIP Receipts
-on: [push, pull_request]
-
-jobs:
-  receipt:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: truthlocks/maip-github-action@v1
-        with:
-          api-key: ${{ secrets.TRUTHLOCKS_API_KEY }}
-          events: commit,pr
-          algorithm: Ed25519
+# Integration step for a reviewed local checkout with built dist/index.js.
+# Place in an explicitly triggered test workflow after checkout/build.
+- uses: ./packages/maip-github-action
+  with:
+    maip-api-url: https://sandbox-api.truthlocks.com/v1
+    maip-api-key: ${{ secrets.TRUTHLOCKS_API_KEY }}
+    maip-tenant-id: ${{ vars.TRUTHLOCKS_TENANT_ID }}
+    maip-agent-id: ${{ vars.TRUTHLOCKS_AGENT_ID }}
+    mode: receipt
+    event-type: commit
+    create-check: 'false'
+    post-comment: 'false'
 ```
 
-## Get an API Key (Free)
+## Declared inputs
 
-```bash
-# Register in 5 seconds — no website needed:
-npx @truthlocks/protect register --email dev@example.com
-# → Save the tl_test_* key as a GitHub Secret (TRUTHLOCKS_API_KEY)
-```
+The names below match `action.yml`. Do not use older examples with undeclared inputs.
 
-Free tier: 100 receipts/month. Upgrade at [console.truthlocks.com](https://console.truthlocks.com/upgrade).
+| Input | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `maip-api-url` | No | https://api.truthlocks.com/v1 | MAIP API URL |
+| `maip-api-key` | Yes | — | MAIP API Key |
+| `maip-tenant-id` | Yes | — | Tenant ID |
+| `maip-agent-id` | For new receipts | � | Existing registered workspace agent ID |
+| `mode` | No | receipt | Operation mode: receipt, verify, check, comment, badge |
+| `event-type` | No | auto | Event type: commit, pr, release, ci, artifact |
+| `receipt-id` | No | — | Receipt ID to verify (for mode=verify) |
+| `create-check` | No | true | Create GitHub Check Run with results |
+| `post-comment` | No | true | Post PR comment with receipt summary |
+| `github-token` | No | ${{ github.token }} | GitHub token for API calls |
 
-## Inputs
+## Declared outputs
 
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `api-key` | Yes | — | Truthlocks API key (`tl_test_*` or `tl_live_*`) |
-| `events` | No | `commit` | Comma-separated: `commit`, `pr`, `release`, `ci` |
-| `algorithm` | No | `Ed25519` | Signing algorithm (Ed25519, ES256, ES384, ES512, RS256, RS384, RS512, PS256, PS384, PS512) |
-| `verify` | No | `true` | Verify receipt chain integrity after generation |
-| `badge` | No | `true` | Generate verification badge for PR comments |
-| `fail-on-break` | No | `false` | Fail the workflow if chain integrity is broken |
+| Output | Meaning |
+| --- | --- |
+| `receipt-id` | Generated receipt ID |
+| `receipt-hash` | Receipt chain hash |
+| `verification-status` | Verification result (valid/invalid/pending) |
+| `trust-score` | Agent trust score |
+| `badge-url` | URL of generated status badge |
 
-## Outputs
+Outputs are not proof that a cryptographic verification occurred. Check the actual
+operation result and fail the calling workflow on errors. Do not treat a displayed
+badge, trust score or successful job exit as an independently verified signature.
 
-| Output | Description |
-|--------|-------------|
-| `receipt-id` | UUID of the generated receipt |
-| `attestation-id` | UUID of the signed attestation |
-| `chain-valid` | `true` if the receipt chain is valid |
-| `badge-url` | URL of the generated verification badge |
-| `verify-url` | Public verification link |
+## Build, permissions and testing
 
-## Events
+Review the action's runtime and entry point before packaging. Keep credentials out of
+pull requests from untrusted forks. Grant GitHub write permissions only for features
+you intentionally enable; check/comment features perform remote writes. Test a labeled
+private QA artifact before enabling automation for real release artifacts.
 
-### Commit Receipts
-Every push generates a receipt containing:
-- Commit SHA, author, message
-- Files changed (additions/deletions)
-- Timestamp with cryptographic proof
-- Link to parent receipt (chain)
+## Troubleshooting
 
-### PR Receipts
-Pull request events generate receipts for:
-- PR creation, merge, close
-- Review approvals
-- CI check results
+For unknown inputs, compare exact names with the table. For missing entry points,
+inspect the packaged artifact rather than relying on local node_modules. For 404 or
+verification failures, check the hosted route contract and identifier type. A retry
+must not silently create duplicate receipts; preserve supported idempotency behavior.
 
-### Release Receipts
-Tag/release events generate receipts containing:
-- Release version, name, body
-- Associated commit SHA
-- Build artifacts hash
-
-### CI Receipts
-Workflow completion generates receipts for:
-- Job status (pass/fail)
-- Duration, runner info
-- Artifact checksums
-
-## Supported Algorithms
-
-| Algorithm | Best For |
-|-----------|----------|
-| Ed25519 | Default. Fastest signatures |
-| ES256 | Web standard compatibility |
-| ES384 | Government/CNSA Suite compliance |
-| PS256 | Modern RSA (NIST recommended) |
-| RS256 | Legacy PKI interop |
-
-## Verification
-
-Receipts are publicly verifiable:
-```bash
-# Verify via CLI
-npx @truthlocks/protect verify --id RECEIPT_UUID
-
-# Verify via API
-curl https://api.truthlocks.com/v1/verify -d '{"attestation_id":"UUID"}'
-
-# Verify on web
-# https://verify.truthlocks.com?id=RECEIPT_UUID
-```
-
-## Links
-
-- [Documentation](https://docs.truthlocks.com/guides/protect-action)
-- [MAIP Specification](https://docs.truthlocks.com/guides/machine-identity)
-- [Console](https://console.truthlocks.com)
-- [GitHub](https://github.com/truthlocks)
-
-## License
-
-MIT
+[Protection CLI guide](https://docs.truthlocks.com/guides/protect-cli) ·
+[Developer documentation](https://docs.truthlocks.com)

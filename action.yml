@@ -9,13 +9,13 @@ inputs:
   maip-api-url:
     description: "MAIP API URL"
     required: false
-    default: "https://api.truthlocks.com/v1/machine-identity"
+    default: "https://api.truthlocks.com/v1"
   maip-api-key:
     description: "MAIP API Key"
     required: true
   maip-tenant-id:
-    description: "Tenant ID"
-    required: true
+    description: "Optional workspace metadata; API credentials determine access"
+    required: false
   maip-agent-id:
     description: "Agent ID for this GitHub repository"
     required: false

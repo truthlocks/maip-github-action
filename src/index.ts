@@ -91,11 +91,10 @@ async function run(): Promise<void> {
     }
   } catch (error: unknown) {
     /**
-     * Never fail the CI build due to MAIP errors.
-     * Log the error as a warning so the workflow continues.
+     * Fail explicitly when requested evidence cannot be confirmed.
      */
     const message = error instanceof Error ? error.message : String(error);
-    core.warning(`MAIP GitHub Action failed: ${message}`);
+    core.setFailed(`MAIP GitHub Action failed: ${message}`);
     core.setOutput("verification-status", "error");
   }
 }
@@ -169,8 +168,11 @@ async function handleReceiptMode(
     );
   } catch (error: unknown) {
     core.warning(`Receipt verification failed: ${String(error)}`);
-    core.setOutput("verification-status", "pending");
+    core.setOutput("verification-status", "error");
+    throw error;
   }
+
+  if (!verification?.valid) throw new Error("Receipt signature verification failed");
 
   try {
     trustScore = await client.getTrustScore(agentId);
@@ -193,7 +195,7 @@ async function handleReceiptMode(
   }
 
   core.info(
-    `Receipt created: ${receipt.receipt_id} (chain: ${receipt.delegation_chain_hash.substring(0, 16)}...)`,
+    `Receipt created: ${receipt.receipt_id} (chain: ${(receipt.delegation_chain_hash || "unavailable").substring(0, 16)}...)`,
   );
 }
 
@@ -210,6 +212,7 @@ async function handleVerifyMode(
 ): Promise<void> {
   const receipt = await client.getReceipt(receiptId);
   const verification = await client.verifyReceipt(receiptId);
+  if (!verification.valid) throw new Error("Receipt signature verification failed: " + verification.details);
 
   core.setOutput("receipt-id", receipt.receipt_id);
   core.setOutput("receipt-hash", receipt.delegation_chain_hash);

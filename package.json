@@ -1,8 +1,8 @@
 {
   "name": "@truthlocks/maip-github-action",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "private": false,
-  "description": "Generate and verify MAIP receipts for GitHub events — commits, PRs, releases, CI runs",
+  "description": "Create signed MAIP receipts for GitHub events and verify their signatures",
   "type": "module",
   "license": "Apache-2.0",
   "main": "dist/index.js",
@@ -26,5 +26,23 @@
   },
   "engines": {
     "node": ">=20.0.0"
-  }
+  },
+  "homepage": "https://docs.truthlocks.com/guides/protect-action",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/truthlocks/truthlock.git",
+    "directory": "packages/maip-github-action"
+  },
+  "bugs": {
+    "url": "https://github.com/truthlocks/truthlock/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "action.yml",
+    "README.md"
+  ]
 }
